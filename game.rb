@@ -2,34 +2,84 @@
 
 # class to make the game board
 class Game
-  WINNING_CONDITIONS = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [1, 4, 7], [2, 5, 8], [3, 6, 9], [1, 5, 9], [3, 5, 7]].freeze
-  attr_accessor :occupied_spaces
-
   def initialize(player1, player2)
-    @positions = { 1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => '8', 9 => '9' }
+    @positions = [[' ', ' ', ' '], [' ', ' ', ' '], [' ', ' ', ' ']]
     @player1 = player1
     @player2 = player2
     @game_over = false
   end
 
-  def occupy_space(space)
-    raise ArgumentError, "Space #{space} not available" if @positions[space] == ' '
+  def occupy_space
+    puts 'Enter the row of the position you want to occupy'
+    row = gets.chomp.to_i - 1
+    puts 'Enter the column of the position you want to occupy'
+    column = gets.chomp.to_i - 1
+    raise StandardError, 'Invalid row, enter a number between 1 and 3' if row.nil? || !row.between?(0, 2)
+    raise StandardError, 'Invalid column, enter a number' if column.nil? || !column.between?(0, 2)
+    raise StandardError, "The position #{row}X#{column} is already occupied" unless @positions[row][column] == ' '
 
-    @occupied_spaces << space
-    @current_player.occupied_spaces << space
+    @positions[row][column] = @current_player.symbol
+  end
+
+  def position_input
+    is_valid = false
+    until is_valid
+      begin
+        occupy_space
+      rescue StandardError => e
+        puts e.message
+      else
+        is_valid = true
+      end
+    end
   end
 
   def play
     @current_player = @player1
-    puts "#{@current_player}'s turn - #{@current_player.symbol}'"
-    draw_board
+    until @game_over
+      puts "#{@current_player.name}'s turn - #{@current_player.symbol}'"
+      draw_board
+      position_input
+      check_winner
+      @current_player = @current_player == @player1 ? @player2 : @player1
+    end
   end
 
   def draw_board
-    puts "  #{@positions[1]}  |  #{@positions[2]}  |  #{@positions[3]}  "
+    puts "  #{@positions[0][0]}  |  #{@positions[0][1]}  |  #{@positions[0][2]}  "
     puts '_______________'
-    puts "  #{@positions[4]}  |  #{@positions[5]}  |  #{@positions[6]}  "
+    puts "  #{@positions[1][0]}  |  #{@positions[1][1]}  |  #{@positions[1][2]}  "
     puts '________________'
-    puts "  #{@positions[7]}  |  #{@positions[8]}  |  #{@positions[9]}  "
+    puts "  #{@positions[2][0]}  |  #{@positions[2][1]}  |  #{@positions[2][2]}  "
   end
+
+  def check_winner
+    game_won = check_by_row || check_diagonal || check_by_column
+    return unless game_won
+
+    @game_over = true
+    draw_board
+    puts "#{@current_player.name} won!"
+  end
+
+  def check_by_row
+    @positions.any? do |row|
+      row.all? { |column| column != ' ' } && row.uniq.length == 1
+    end
+  end
+
+  def check_diagonal
+    return false if @positions[1][1] == ' '
+
+    (@positions[1][1] == @positions[2][2] && @positions[1][1] == @positions[0][0]) ||
+      (@positions[1][1] == @positions[0][2] && @positions[1][1] == @positions[2][0])
+  end
+
+  def check_by_column
+    first_row = @positions[0]
+    (0..@positions.length - 1).any? do |column|
+      @positions.all? { |row| row[column] == first_row[column] && first_row[column] != ' '}
+    end
+  end
+
 end
